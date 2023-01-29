@@ -41,7 +41,7 @@ import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
 
 @SpringBootApplication	
-@EnableKafkaStreams
+//@EnableKafkaStreams
 public class SpringCcloudApplication {
 
 	public static void main(String[] args) {
@@ -56,6 +56,11 @@ public class SpringCcloudApplication {
 	@Bean
 	NewTopic counts() {
         return TopicBuilder.name("streams-wordcount-output").partitions(6).replicas(3).build();
+	}
+	
+	@Bean
+	NewTopic hobbit_avro() {
+		return TopicBuilder.name("hobbit-avro").partitions(15).replicas(3).build();
 	}
 }
 
@@ -76,19 +81,19 @@ class Producer {
 		final Flux<String> quotes = Flux.fromStream(Stream.generate(() -> faker.hobbit().quote()));
 
 		Flux.zip(interval, quotes)
-				.map(it -> template.send("hobbit", faker.random().nextInt(42), it.getT2())).blockLast();
+				.map(it -> template.send("hobbit-avro", faker.random().nextInt(42), it.getT2())).blockLast();
 	}
 }
 
 @Component
 class Consumer {
-    @KafkaListener(topics = {"streams-wordcount-output"}, groupId = "spring-boot-kafka")
+    @KafkaListener(topics = {"hobbit-avro"}, groupId = "spring-boot-kafka")
     public void consume(ConsumerRecord<String, Long> record) {
         System.out.println("received = " + record.value() + " with key " + record.key());
     }
 }
 
-@Component
+//@Component
 class Processor {
     @Autowired
     public void process(StreamsBuilder builder) {
@@ -106,15 +111,15 @@ class Processor {
       }
   }
   
-@RestController
-@RequiredArgsConstructor
+//@RestController
+//@RequiredArgsConstructor
 class RestService {
-    private final StreamsBuilderFactoryBean factoryBean;
+    //private final StreamsBuilderFactoryBean factoryBean;
 
-    @GetMapping("/count/{word}")
-    public Long getCount(@PathVariable String word){
-        final KafkaStreams kafkaStreams =  factoryBean.getKafkaStreams();
-        final ReadOnlyKeyValueStore<String, Long> counts = kafkaStreams.store(StoreQueryParameters.fromNameAndType("counts", QueryableStoreTypes.keyValueStore()));
-        return counts.get(word);
-    }
+    //@GetMapping("/count/{word}")
+    //public Long getCount(@PathVariable String word){
+        //final KafkaStreams kafkaStreams =  factoryBean.getKafkaStreams();
+        //final ReadOnlyKeyValueStore<String, Long> counts = kafkaStreams.store(StoreQueryParameters.fromNameAndType("counts", QueryableStoreTypes.keyValueStore()));
+        //return counts.get(word);
+    //}
 }

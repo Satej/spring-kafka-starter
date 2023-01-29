@@ -1,7 +1,9 @@
 plugins {
 	id 'java'
+	id "idea"
 	id 'org.springframework.boot' version '3.0.2'
 	id 'io.spring.dependency-management' version '1.1.0'
+	id "com.github.davidmc24.gradle.plugin.avro" version "1.2.0"
 }
 
 group = 'io.confluent.developer'
@@ -16,9 +18,15 @@ configurations {
 
 repositories {
 	mavenCentral()
+
+	maven {
+	    url "https://packages.confluent.io/maven"
+	}
 }
 
 dependencies {
+	implementation 'org.apache.avro:avro:1.10.2'
+	implementation "io.confluent:kafka-avro-serializer:6.1.0"
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
 	implementation 'org.apache.kafka:kafka-streams'
 	implementation 'org.springframework.kafka:spring-kafka'
