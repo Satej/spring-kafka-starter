@@ -5,19 +5,24 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import com.github.javafaker.Faker;
+import org.apache.kafka.streams.state.QueryableStoreTypes;
+import org.apache.kafka.streams.StoreQueryParameters;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
+import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Produced;
+import org.springframework.kafka.config.StreamsBuilderFactoryBean;
 
 import org.apache.kafka.clients.admin.NewTopic;
 import java.time.Duration;
@@ -29,6 +34,11 @@ import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.Grouped;
 import java.util.Arrays;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
+import org.apache.kafka.streams.state.QueryableStoreTypes;
 
 @SpringBootApplication	
 @EnableKafkaStreams
@@ -87,12 +97,24 @@ class Processor {
 		 final Serde<Long> longSerde = Serdes.Long();
 
 		 KStream<Integer, String> textLines = builder.stream("hobbit", Consumed.with(integerSerde, stringSerde));
-
-		 KTable<String, Long> wordCounts = textLines
+         KTable<String, Long> wordCounts = textLines
 		    .flatMapValues(value -> Arrays.asList(value.toLowerCase().split("\\W+")))
 			.groupBy((key, value) -> value, Grouped.with(stringSerde, stringSerde))
-				    .count();
+            .count(Materialized.as("counts"));
 
         wordCounts.toStream().to("streams-wordcount-output", Produced.with(stringSerde, longSerde));
       }
   }
+  
+@RestController
+@RequiredArgsConstructor
+class RestService {
+    private final StreamsBuilderFactoryBean factoryBean;
+
+    @GetMapping("/count/{word}")
+    public Long getCount(@PathVariable String word){
+        final KafkaStreams kafkaStreams =  factoryBean.getKafkaStreams();
+        final ReadOnlyKeyValueStore<String, Long> counts = kafkaStreams.store(StoreQueryParameters.fromNameAndType("counts", QueryableStoreTypes.keyValueStore()));
+        return counts.get(word);
+    }
+}
