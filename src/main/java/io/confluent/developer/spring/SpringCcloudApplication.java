@@ -12,14 +12,22 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
+import org.apache.kafka.clients.admin.NewTopic;
 import java.time.Duration;
 import java.util.stream.Stream;
+import org.springframework.context.annotation.Bean;
+import org.springframework.kafka.config.TopicBuilder;
 
 @SpringBootApplication
 public class SpringCcloudApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(SpringCcloudApplication.class, args);
+	}
+	
+	@Bean
+	NewTopic hobbit2() {
+    	return TopicBuilder.name("hobbit2").partitions(12).replicas(3).build();
 	}
 
 }
