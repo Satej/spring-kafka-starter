@@ -72,10 +72,9 @@ class Producer {
 
 @Component
 class Consumer {
-
-    @KafkaListener(topics = {"hobbit"}, groupId = "spring-boot-kafka")
-    public void consume(ConsumerRecord<Integer, String> record) {
-      System.out.println("received = " + record.value() + " with key " + record.key());
+    @KafkaListener(topics = {"streams-wordcount-output"}, groupId = "spring-boot-kafka")
+    public void consume(ConsumerRecord<String, Long> record) {
+        System.out.println("received = " + record.value() + " with key " + record.key());
     }
 }
 
